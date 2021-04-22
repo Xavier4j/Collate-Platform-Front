@@ -18,16 +18,25 @@ export default new Router({
           name: "Collate",
           path: "/",
           component: () => import("@/views/collator/Collate"),
+          meta: {
+            requireAuth: true, //添加该字段，表示访问该页面需要登录
+          },
         },
         {
           name: "History",
           path: "history",
           component: () => import("@/views/collator/History"),
+          meta: {
+            requireAuth: true, //添加该字段，表示访问该页面需要登录
+          },
         },
         {
           name: "Search",
           path: "search",
           component: () => import("@/views/collator/Search"),
+          meta: {
+            requireAuth: true, //添加该字段，表示访问该页面需要登录
+          },
         },
         {
           name: "Profile",
