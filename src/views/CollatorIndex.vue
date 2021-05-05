@@ -18,6 +18,7 @@
           @change="toSearch"
           style="max-width: 500px"
         />
+        <v-spacer></v-spacer>
         <v-btn class="ma-3" text v-if="!token" to="login">登录/注册</v-btn>
         <v-menu v-else offset-y transition="slide-y-transition" bottom>
           <template v-slot:activator="{ on }">
@@ -44,7 +45,7 @@
 
             <v-tab
               v-for="(item, index) in tabItems"
-              v-show="index < 2"
+              v-show="index < 2 || $route.path.indexOf(item.path) >= 0"
               :key="index"
               :to="item.path"
             >
@@ -80,7 +81,7 @@ export default {
       { title: "开始核对", path: "/", icon: "mdi-image-edit" },
       { title: "历史核对", path: "/history", icon: "mdi-history" },
       { title: "个人中心", path: "/profile", icon: "mdi-account-details" },
-      { title: "搜索结果", path: "/search", icon: "mdi-search" },
+      { title: "搜索结果", path: "/search", icon: "mdi-magnify" },
       // { title: "课程内容", path: "/course", icon: "mdi-course" },
       // { title: "公告查看", path: "/post/view", icon: "mdi-post" },
       // { title: "考试内容", path: "/exam/view", icon: "mdi-exam" },

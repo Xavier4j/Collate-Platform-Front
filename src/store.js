@@ -30,11 +30,11 @@ export default new Vuex.Store({
       state.token = payload.id;
       state.user = payload.username;
       state.role = payload.role;
-      state.avatar_url = payload.profile.avatarUrl;
+      state.avatar_url = payload.avatarUrl;
       window.sessionStorage.setItem("token", payload.id);
       window.sessionStorage.setItem("user", payload);
       window.sessionStorage.setItem("role", payload.role);
-      window.sessionStorage.setItem("avatar_url", payload.profile.avatarUrl);
+      window.sessionStorage.setItem("avatar_url", payload.avatarUrl);
     },
     SET_USER(state, payload) {
       state.user = payload;

@@ -9,7 +9,7 @@
     :multi-line="mode === 'multi-line'"
     :color="color"
     :timeout="timeout"
-    style="position:fixed;margin-top:100px"
+    style="position:fixed;margin-top:100px;z-index:1000;"
   >
     {{ text }}
 

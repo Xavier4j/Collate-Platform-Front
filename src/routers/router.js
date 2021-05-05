@@ -57,7 +57,7 @@ export default new Router({
               component: () => import("@/views/profile/Account"),
             },
             {
-              path: "/*",
+              path: "*",
               redirect: "info",
             },
           ],
@@ -93,16 +93,21 @@ export default new Router({
           path: "account",
           component: () => import("@/views/profile/Account"),
         },
-        {
-          path: "*",
-          redirect: "home",
-        },
       ],
+    },
+    {
+      path: "/admin/*",
+      redirect: "/admin/collate",
+    },
+    {
+      path: "/*",
+      redirect: "/",
     },
   ],
   scrollBehavior(to, from, savedPosition) {
     console.log(to);
     console.log(from);
+    console.log(savedPosition);
     // return 期望滚动到哪个的位置
     if (savedPosition) {
       return savedPosition;

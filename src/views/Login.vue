@@ -9,16 +9,8 @@
         <v-flex xs12 sm8 md4>
           <v-card class="elevation-12">
             <v-toolbar color="purple" dark flat>
-              <v-toolbar-title v-if="isLogin">Login</v-toolbar-title>
-              <v-toolbar-title v-else>Signup</v-toolbar-title>
+              <v-toolbar-title>Login</v-toolbar-title>
               <v-spacer></v-spacer>
-              <v-btn
-                class="text-capitalize"
-                color="orange lighten-2"
-                outlined
-                @click="isLogin = !isLogin"
-                >{{ isLogin ? "Signup" : "Login" }}</v-btn
-              >
             </v-toolbar>
             <v-card-text>
               <v-form>
@@ -37,16 +29,6 @@
                   prepend-icon="mdi-lock"
                   type="password"
                 ></v-text-field>
-
-                <v-text-field
-                  id="confirmPassword"
-                  label="ConfirmPassword"
-                  name="confirmPassword"
-                  v-model="confirmPassWord"
-                  prepend-icon="mdi-lock"
-                  type="password"
-                  v-if="!isLogin"
-                ></v-text-field>
               </v-form>
             </v-card-text>
             <v-card-actions>
@@ -55,7 +37,7 @@
                 color="indigo"
                 outlined
                 class="text-capitalize mr-6 mb-2"
-                @click="submit(logInForm)"
+                @click="logIn(logInForm)"
                 >Submit</v-btn
               >
             </v-card-actions>
@@ -63,35 +45,6 @@
         </v-flex>
       </v-layout>
     </v-container>
-    <v-dialog
-      transition="dialog-top-transition"
-      v-model="dialog"
-      persistent
-      max-width="600px"
-      style="min-height:500px"
-    >
-      <template v-slot:default="">
-        <v-card>
-          <v-toolbar color="primary" dark>选择你要进入的系统</v-toolbar>
-          <v-card-text>
-            <div class="text-h2 pa-12">
-              <v-row style="text-align:center">
-                <v-col cols="6">
-                  <v-btn color="orange" dark x-large @click="choose(1)">
-                    用户端
-                  </v-btn>
-                </v-col>
-                <v-col cols="6">
-                  <v-btn color="error" dark x-large @click="choose(0)">
-                    管理端
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </div>
-          </v-card-text>
-        </v-card>
-      </template>
-    </v-dialog>
   </v-app>
 </template>
 
@@ -103,29 +56,13 @@ export default {
       snackbar: false,
       multiLine: true,
       text: "3",
-      //isLogin判断是登录还是注册
-      isLogin: true,
       logInForm: {
         username: "",
         password: "",
       },
-      dialog: false,
-      //注册数据
-      signUpForm: {
-        username: "",
-        password: "",
-      },
-      confirmPassWord: "",
     };
   },
   methods: {
-    submit(logInForm) {
-      if (this.isLogin) {
-        this.logIn(logInForm);
-      } else {
-        this.signUp(logInForm);
-      }
-    },
     logIn(logInForm) {
       this.$api
         .logIn(logInForm)
@@ -144,7 +81,7 @@ export default {
                 });
                 this.$router.push(this.$route.query.redirect);
               } else if (res.data.data.role > 0) {
-                this.dialog = true;
+                this.$router.push("/admin/home");
               } else {
                 this.$toast({
                   color: "success",
@@ -183,24 +120,6 @@ export default {
           });
         })
         .finally(() => {});
-    },
-    choose(i) {
-      this.dialog = false;
-      this.$toast({
-        color: "success",
-        mode: "",
-        snackbar: true,
-        text: "登录成功,角色为老师！",
-        timeout: 2000,
-        x: "right",
-        y: "top",
-      });
-      if (i == 0) {
-        console.log(123);
-        this.$router.push("/admin/home");
-      } else {
-        this.$router.push("/");
-      }
     },
     signUp(logInForm) {
       if (logInForm.password != this.confirmPassWord) {

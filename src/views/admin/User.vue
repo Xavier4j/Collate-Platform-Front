@@ -1,260 +1,365 @@
 <template>
-  <v-container> 用户 </v-container>
+  <v-container>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-text-field
+        v-model="search"
+        solo
+        hide-details
+        prepend-inner-icon="mdi-magnify"
+        class="hidden-sm-and-down mr-10"
+        placeholder="搜索（姓名）"
+        @change="reGetUserList"
+        style="max-width:500px"
+      />
+      <v-spacer></v-spacer>
+      <!-- <v-btn text color="secondary"></v-btn> -->
+      <v-btn outlined color="primary" @click="handleAdd">
+        新增用户
+      </v-btn>
+    </v-card-actions>
+    <v-simple-table style="background:none">
+      <template v-slot:default>
+        <thead>
+          <tr>
+            <th style="font-size:15px;" class="text-left">用户昵称</th>
+            <th style="font-size:15px;" class="text-left">用户头像</th>
+            <th style="font-size:15px;" class="text-left">姓名</th>
+            <th style="font-size:15px;" class="text-left">个人说明</th>
+            <th style="font-size:15px;" class="text-left">授权状态</th>
+            <th style="font-size:15px;" class="text-left">任务完成度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(user, index) in userList" :key="index">
+            <td>{{ user.username }}</td>
+            <td>
+              <v-img
+                class="ma-2"
+                max-height="150"
+                max-width="150"
+                :src="user.avatarUrl"
+                alt="用户头像"
+              />
+            </td>
+            <td>
+              <div style="max-width:120px">
+                <v-text-field
+                  v-model="user.name"
+                  label="姓名"
+                  placeholder="回车保存"
+                  outlined
+                  style="max-width:150px"
+                  @change="saveUser(user)"
+                >
+                </v-text-field>
+              </div>
+            </td>
+
+            <td>
+              {{ user.note }}
+            </td>
+            <td>
+              <v-switch
+                v-model="user.isAuthorized"
+                :label="user.isAuthorized ? '已授权' : '未授权'"
+                color="success"
+                hide-details
+                @change="saveUser(user)"
+              ></v-switch>
+            </td>
+            <td>{{ user.complete }} / {{ user.total }}</td>
+          </tr>
+        </tbody>
+      </template>
+    </v-simple-table>
+    <!-- 分页 -->
+    <div class="text-center my-3">
+      <v-pagination
+        v-model="current"
+        :length="pages"
+        total-visible="10"
+        @input="changePage"
+      ></v-pagination>
+    </div>
+    <v-dialog
+      v-model="userDialog"
+      fullscreen
+      hide-overlay
+      transition="dialog-bottom-transition"
+    >
+      <v-card>
+        <v-toolbar dark color="primary">
+          <v-btn icon dark @click="userDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>新增用户</v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-toolbar-items>
+            <v-btn dark text @click="saveUserList">
+              完成
+            </v-btn>
+          </v-toolbar-items>
+        </v-toolbar>
+
+        <v-container class="pa-10">
+          <v-form ref="form" v-model="valid" lazy-validation>
+            <v-card
+              class="pa-5 ma-2"
+              elevation="2"
+              v-for="(userForm, index) in userFormList"
+              :key="index"
+            >
+              <v-text-field
+                v-model="userForm.username"
+                :rules="usernameRules"
+                label="用户名"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="userForm.password"
+                :counter="10"
+                :rules="passwordRules"
+                label="密码"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="userForm.name"
+                :counter="10"
+                :rules="nameRules"
+                label="姓名"
+                required
+              ></v-text-field>
+
+              <div class="my-5" style="text-align:center">
+                <v-btn
+                  class="mx-auto ml-2"
+                  color="error"
+                  fab
+                  @click="userFormList.splice(userForm, 1)"
+                >
+                  <v-icon color="white">mdi-delete</v-icon>
+                </v-btn>
+              </div>
+            </v-card>
+          </v-form>
+          <div class="my-5" style="text-align:center">
+            <v-btn class="mx-auto" color="pink" fab large @click="addUser">
+              <v-icon color="white">mdi-plus</v-icon>
+            </v-btn>
+          </div>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="warning" class="mr-4" @click="reset">
+              重置表单
+            </v-btn>
+            <v-btn color="primary" @click="saveUserList">
+              完成
+            </v-btn>
+          </v-card-actions>
+        </v-container>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script>
-import moment from "moment/moment";
 export default {
-  name: "Home",
+  name: "User",
   data() {
     return {
-      datePicker1: false,
-      datePicker2: false,
-      start: moment().subtract(13, "days").format("YYYY-MM-DD"),
-      end: moment().format("YYYY-MM-DD"),
-
-      hotPostLoading: false,
-      sentitiveLoading: false,
-      keywordLoading: false,
-      topicLoading1: false,
-      topicLoading2: false,
-      negativeLoading: false,
-
-      hotPostList: [],
-      satisfactionEmojis: [
-        "😭",
-        "😢",
-        "☹️",
-        "🙁",
-        "😐",
-        "🙂",
-        "😊",
-        "😁",
-        "😄",
-        "😍",
+      search: "",
+      userDialog: false,
+      deleteDialog: false,
+      valid: true,
+      userFormList: [
+        {
+          username: "",
+          password: "",
+          name: "",
+        },
       ],
-      sentitiveAnalysisList: [],
-      topicAnalysisList: [],
-      KeywordAnalysisList: [],
-      negativeAnalysisList: [],
+      usernameRules: [(v) => !!v || "用户名必须填写"],
+      passwordRules: [(v) => !!v || "密码必须填写"],
+      nameRules: [
+        (v) => !!v || "姓名必须填写",
+        (v) => (v && v.length <= 16) || "姓名不能超过16个字！",
+      ],
+      userList: [],
+      //分页
+      current: 1,
+      size: 15,
+      //总页数
+      pages: 0,
     };
   },
   methods: {
-    analysis() {
-      this.getSentitiveAnalysis();
-      this.getHotPostList();
-      this.getTopicAnalysis();
-      this.getKeywordAnalysis();
-      this.getNegativeAnalysis();
+    reGetUserList() {
+      this.current = 1;
+      this.getUserList();
     },
-    toView(id) {
-      const { href } = this.$router.resolve({
-        path: `/post`,
-        query: {
-          id: id,
+    getUserList() {
+      this.$api
+        .getUserList({
+          search: this.search,
+          current: this.current,
+          size: this.size,
+        })
+        .then((res) => {
+          if (res.data.code == 200) {
+            this.userList = res.data.data.records;
+            this.pages = res.data.data.pages;
+          } else {
+            this.$toast({
+              color: "error",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "系统异常,请稍后重试!",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
+        })
+        .finally(() => {});
+    },
+    handleAdd() {
+      this.userFormList = [
+        {
+          username: "",
+          password: "",
+          name: "",
         },
+      ];
+      this.userDialog = true;
+      // 用 this.nextTick 或者用个定时器来确保 dom 渲染并更新
+      this.$nextTick(function() {
+        // 打开新增弹窗前先重置表单 避免表单出现上一次新增的校验数据
+        this.reset();
       });
-      window.open(href, "_blank");
     },
-    getHotPostList() {
-      this.hotPostLoading = true;
+    addUser() {
+      this.userFormList.push({
+        username: "",
+        password: "",
+        name: "",
+      });
+    },
+    saveUserList() {
       this.$api
-        .getHotPostList()
+        .signUpBatch(this.userFormList)
         .then((res) => {
           if (res.data.code == 200) {
-            this.hotPostList = res.data.data.list;
+            this.$toast({
+              color: "success",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
+            this.userDialog = false;
+            this.getUserList();
           } else {
-            console.log("获取数据失败！");
+            console.log(1);
+            this.$toast({
+              color: "error",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
           }
         })
         .catch((err) => {
-          console.log("获取数据失败！");
           console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "系统异常,请稍后重试!",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
         })
-        .finally(() => {
-          this.hotPostLoading = false;
-        });
+        .finally(() => {});
     },
-    getSentitiveAnalysis() {
-      this.sentitiveLoading = true;
+    saveUser(user) {
       this.$api
-        .getSentitiveAnalysis({
-          start: this.start,
-          end: this.end,
-        })
+        .editUserProfile(user)
         .then((res) => {
           if (res.data.code == 200) {
-            this.sentitiveAnalysisList = res.data.data;
-            this.renderSentitiveChart(
-              this.sentitiveChart,
-              this.sentitiveAnalysisList,
-              "#f0657d"
-            );
+            this.$toast({
+              color: "success",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
+            this.userDialog = false;
+            this.getUserList();
           } else {
-            console.log("获取数据失败！");
+            this.$toast({
+              color: "error",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
           }
         })
         .catch((err) => {
-          console.log("获取数据失败！");
           console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "系统异常,请稍后重试!",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
         })
-        .finally(() => {
-          this.sentitiveLoading = false;
-        });
+        .finally(() => {});
     },
-    getTopicAnalysis() {
-      this.topicLoading1 = true;
-      this.topicLoading2 = true;
-      this.$api
-        .getTopicAnalysis({
-          start: this.start,
-          end: this.end,
-        })
-        .then((res) => {
-          if (res.data.code == 200) {
-            this.topicAnalysisList = res.data.data;
-            this.renderTagChart(
-              this.topicChart1,
-              this.topicAnalysisList.lv1TagList,
-              "#009688"
-            );
-            this.renderTagChart(
-              this.topicChart2,
-              this.topicAnalysisList.lv2TagList,
-              "#F44336"
-            );
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.topicLoading1 = false;
-          this.topicLoading2 = false;
-        });
+    changePage(page) {
+      console.log(page);
+      this.getUserList();
     },
-    getKeywordAnalysis() {
-      this.keywordLoading = true;
-      this.$api
-        .getKeywordAnalysis({
-          start: this.start,
-          end: this.end,
-        })
-        .then((res) => {
-          if (res.data.code == 200) {
-            this.KeywordAnalysisList = res.data.data;
-            this.renderTagChart(
-              this.keywordChart,
-              this.KeywordAnalysisList,
-              "#E91E63"
-            );
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.keywordLoading = false;
-        });
+    validate() {
+      this.$refs.form.validate();
     },
-    getNegativeAnalysis() {
-      this.negativeLoading = true;
-      this.$api
-        .getNegativeAnalysis({
-          start: this.start,
-          end: this.end,
-        })
-        .then((res) => {
-          if (res.data.code == 200) {
-            this.negativeAnalysisList = res.data.data.list;
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.negativeLoading = false;
-        });
+    reset() {
+      this.$refs.form.reset();
     },
-    renderSentitiveChart(chart, data, color) {
-      chart.data(data);
-      chart.scale({
-        date: {
-          range: [0, 1],
-        },
-        value: {
-          min: 0,
-          nice: true,
-        },
-      });
-      chart.tooltip({
-        showMarkers: false,
-      });
-      chart.tooltip({
-        showCrosshairs: true, // 展示 Tooltip 辅助线
-        shared: true,
-      });
-      chart.line().position("date*value").label("value").color(color);
-      chart.point().position("date*value");
-
-      chart.render();
-    },
-    renderTagChart(chart, data, color) {
-      chart.data(data);
-      chart.scale("score", { nice: true });
-      chart.coordinate().transpose();
-      chart.tooltip({
-        showMarkers: false,
-      });
-      chart.interaction("active-region");
-      chart.interval().position("tag*score").color(color);
-      chart.render();
-
-      chart.on("element:click", (ev) => {
-        this.$router.push({
-          path: "post",
-          query: {
-            keyword: ev.data.data.tag,
-          },
-        });
-      });
+    resetValidation() {
+      this.$refs.form.resetValidation();
     },
   },
   mounted() {
-    // this.sentitiveChart = new Chart({
-    //   container: "sentitive-chart",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.topicChart1 = new Chart({
-    //   container: "topic-chart1",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.topicChart2 = new Chart({
-    //   container: "topic-chart2",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.keywordChart = new Chart({
-    //   container: "keyword-chart", // 指定图表容器 ID
-    //   autoFit: true,
-    //   height: 500, // 指定图表高度
-    // });
-    // this.getHotPostList();
-    // this.getSentitiveAnalysis();
-    // this.getTopicAnalysis();
-    // this.getKeywordAnalysis();
-    // this.getNegativeAnalysis();
+    this.getUserList();
   },
 };
 </script>

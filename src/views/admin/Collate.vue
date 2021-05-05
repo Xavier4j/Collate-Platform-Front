@@ -1,271 +1,285 @@
 <template>
   <v-container>
-    首页
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-text-field
+        v-model="search"
+        solo
+        hide-details
+        prepend-inner-icon="mdi-magnify"
+        class="hidden-sm-and-down mr-10"
+        placeholder="搜索（姓名/学号/身份证号）"
+        @change="reGetStudentList"
+        style="max-width:500px"
+      />
+      <v-spacer></v-spacer>
+      <v-btn class="mr-10" color="primary" @click="exportResult"
+        >导出结果</v-btn
+      >
+    </v-card-actions>
+
+    <v-tabs
+      v-model="tab"
+      @change="changeTab"
+      color="deep-purple accent-4"
+      centered
+    >
+      <v-tab v-for="item in items" :key="item.tab" style="font-size:16px">
+        {{ item.tab }}
+      </v-tab>
+    </v-tabs>
+    <v-simple-table style="background:none">
+      <template v-slot:default>
+        <thead>
+          <tr>
+            <th style="font-size:15px;" class="text-left">姓名</th>
+            <th style="font-size:15px;" class="text-left">性别</th>
+            <th style="font-size:15px;" class="text-left">学号</th>
+            <th style="font-size:15px;" class="text-left">考生号</th>
+            <th style="font-size:15px;" class="text-left">身份证号</th>
+            <th style="font-size:15px;" class="text-left">省份</th>
+            <th style="font-size:15px;" class="text-left">手机号</th>
+            <th style="font-size:15px;" class="text-left">院系</th>
+            <th style="font-size:15px;" class="text-left">专业</th>
+            <th style="font-size:15px;" class="text-center">
+              状态（一致/不一致/核对人员数）
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(studentWithAllResult, index) in studentWithAllResultList"
+            :key="index"
+          >
+            <td>{{ studentWithAllResult.name }}</td>
+            <td>
+              {{ studentWithAllResult.gender }}
+            </td>
+            <td>
+              {{ studentWithAllResult.id }}
+            </td>
+            <td>
+              {{ studentWithAllResult.candidateNumber }}
+            </td>
+            <td>
+              {{ studentWithAllResult.idCardNumber }}
+            </td>
+            <td>
+              {{ studentWithAllResult.province }}
+            </td>
+            <td>
+              {{ studentWithAllResult.phone }}
+            </td>
+            <td>
+              {{ studentWithAllResult.faculty }}
+            </td>
+            <td>
+              {{ studentWithAllResult.major }}
+            </td>
+            <td class="text-center">
+              {{ studentWithAllResult.same }}/{{
+                studentWithAllResult.different
+              }}/{{ studentWithAllResult.total }}
+              <!-- <v-chip
+                :color="studentWithAllResult.result ? 'green' : 'red'"
+                text-color="white"
+              >
+                {{ studentWithAllResult.result ? "核对一致" : "核对不一致" }}
+              </v-chip> -->
+            </td>
+          </tr>
+        </tbody>
+      </template>
+    </v-simple-table>
+    <!-- 分页 -->
+    <div class="text-center my-3">
+      <v-pagination
+        v-model="current"
+        :length="pages"
+        total-visible="10"
+        @input="changePage"
+      ></v-pagination>
+    </div>
   </v-container>
 </template>
 
 <script>
-import moment from "moment/moment";
 export default {
-  name: "Collate",
+  name: "Student",
   data() {
     return {
-      datePicker1: false,
-      datePicker2: false,
-      start: moment()
-        .subtract(13, "days")
-        .format("YYYY-MM-DD"),
-      end: moment().format("YYYY-MM-DD"),
-
-      hotPostLoading: false,
-      sentitiveLoading: false,
-      keywordLoading: false,
-      topicLoading1: false,
-      topicLoading2: false,
-      negativeLoading: false,
-
-      hotPostList: [],
-      satisfactionEmojis: [
-        "😭",
-        "😢",
-        "☹️",
-        "🙁",
-        "😐",
-        "🙂",
-        "😊",
-        "😁",
-        "😄",
-        "😍",
+      //搜索
+      search: "",
+      //检索条件
+      tab: 0,
+      items: [
+        { tab: "所有学生" },
+        { tab: "核对成功学生" },
+        { tab: "核对失败学生" },
       ],
-      sentitiveAnalysisList: [],
-      topicAnalysisList: [],
-      KeywordAnalysisList: [],
-      negativeAnalysisList: [],
+      //数据
+      studentWithAllResultList: [],
+      collatorNum: "",
+      //分页
+      current: 1,
+      size: 15,
+      //总页数
+      pages: 0,
     };
   },
   methods: {
-    analysis() {
-      this.getSentitiveAnalysis();
-      this.getHotPostList();
-      this.getTopicAnalysis();
-      this.getKeywordAnalysis();
-      this.getNegativeAnalysis();
+    reGetStudentList() {
+      this.current = 1;
+      this.getStudentList();
     },
-    toView(id) {
-      const { href } = this.$router.resolve({
-        path: `/post`,
-        query: {
-          id: id,
-        },
-      });
-      window.open(href, "_blank");
+    changeTab(value) {
+      console.log(value);
+      this.reGetStudentList();
     },
-    getHotPostList() {
-      this.hotPostLoading = true;
+    getStudentList() {
       this.$api
-        .getHotPostList()
-        .then((res) => {
-          if (res.data.code == 200) {
-            this.hotPostList = res.data.data.list;
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.hotPostLoading = false;
-        });
-    },
-    getSentitiveAnalysis() {
-      this.sentitiveLoading = true;
-      this.$api
-        .getSentitiveAnalysis({
-          start: this.start,
-          end: this.end,
+        .searchStudentWithAllResult({
+          search: this.search,
+          condition: this.tab,
+          current: this.current,
+          size: this.size,
         })
         .then((res) => {
           if (res.data.code == 200) {
-            this.sentitiveAnalysisList = res.data.data;
-            this.renderSentitiveChart(
-              this.sentitiveChart,
-              this.sentitiveAnalysisList,
-              "#f0657d"
-            );
+            this.studentWithAllResultList = res.data.data.records;
+            this.pages = res.data.data.pages;
           } else {
-            console.log("获取数据失败！");
+            this.$toast({
+              color: "error",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
           }
         })
         .catch((err) => {
-          console.log("获取数据失败！");
           console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "系统异常,请稍后重试!",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
         })
-        .finally(() => {
-          this.sentitiveLoading = false;
-        });
+        .finally(() => {});
     },
-    getTopicAnalysis() {
-      this.topicLoading1 = true;
-      this.topicLoading2 = true;
+    countCollator() {
       this.$api
-        .getTopicAnalysis({
-          start: this.start,
-          end: this.end,
-        })
+        .countCollator()
         .then((res) => {
           if (res.data.code == 200) {
-            this.topicAnalysisList = res.data.data;
-            this.renderTagChart(
-              this.topicChart1,
-              this.topicAnalysisList.lv1TagList,
-              "#009688"
-            );
-            this.renderTagChart(
-              this.topicChart2,
-              this.topicAnalysisList.lv2TagList,
-              "#F44336"
-            );
+            this.collatorNum = res.data.data;
           } else {
-            console.log("获取数据失败！");
+            this.$toast({
+              color: "error",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
           }
         })
         .catch((err) => {
-          console.log("获取数据失败！");
           console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "系统异常,请稍后重试!",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
         })
-        .finally(() => {
-          this.topicLoading1 = false;
-          this.topicLoading2 = false;
-        });
+        .finally(() => {});
     },
-    getKeywordAnalysis() {
-      this.keywordLoading = true;
+    exportResult() {
       this.$api
-        .getKeywordAnalysis({
-          start: this.start,
-          end: this.end,
-        })
+        .exportResult()
         .then((res) => {
           if (res.data.code == 200) {
-            this.KeywordAnalysisList = res.data.data;
-            this.renderTagChart(
-              this.keywordChart,
-              this.KeywordAnalysisList,
-              "#E91E63"
-            );
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.keywordLoading = false;
-        });
-    },
-    getNegativeAnalysis() {
-      this.negativeLoading = true;
-      this.$api
-        .getNegativeAnalysis({
-          start: this.start,
-          end: this.end,
-        })
-        .then((res) => {
-          if (res.data.code == 200) {
-            this.negativeAnalysisList = res.data.data.list;
-          } else {
-            console.log("获取数据失败！");
-          }
-        })
-        .catch((err) => {
-          console.log("获取数据失败！");
-          console.log(err);
-        })
-        .finally(() => {
-          this.negativeLoading = false;
-        });
-    },
-    renderSentitiveChart(chart, data, color) {
-      chart.data(data);
-      chart.scale({
-        date: {
-          range: [0, 1],
-        },
-        value: {
-          min: 0,
-          nice: true,
-        },
-      });
-      chart.tooltip({
-        showMarkers: false,
-      });
-      chart.tooltip({
-        showCrosshairs: true, // 展示 Tooltip 辅助线
-        shared: true,
-      });
-      chart
-        .line()
-        .position("date*value")
-        .label("value")
-        .color(color);
-      chart.point().position("date*value");
+            this.$toast({
+              color: "success",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
 
-      chart.render();
-    },
-    renderTagChart(chart, data, color) {
-      chart.data(data);
-      chart.scale("score", { nice: true });
-      chart.coordinate().transpose();
-      chart.tooltip({
-        showMarkers: false,
-      });
-      chart.interaction("active-region");
-      chart
-        .interval()
-        .position("tag*score")
-        .color(color);
-      chart.render();
+            var a = document.createElement("a"); // 生成一个a元素
 
-      chart.on("element:click", (ev) => {
-        this.$router.push({
-          path: "post",
-          query: {
-            keyword: ev.data.data.tag,
-          },
-        });
-      });
+            var event = new MouseEvent("click"); // 创建一个单击事件
+
+            a.download = name || "photo"; // 设置图片名称
+
+            a.href = res.data.data; // 将生成的URL设置为a.href属性
+
+            a.dispatchEvent(event); // 触发a的单击事件
+          } else {
+            this.$toast({
+              color: "success",
+              mode: "",
+              snackbar: true,
+              text: res.data.msg,
+              timeout: 2000,
+              x: "right",
+              y: "top",
+            });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          this.$toast({
+            color: "error",
+            mode: "",
+            snackbar: true,
+            text: "导出失败，请稍后重试！",
+            timeout: 2000,
+            x: "right",
+            y: "top",
+          });
+        })
+        .finally(() => {});
+    },
+    changePage(page) {
+      console.log(page);
+      this.getStudentList();
+    },
+    validate() {
+      this.$refs.form.validate();
+    },
+    reset() {
+      this.$refs.form.reset();
+    },
+    resetValidation() {
+      this.$refs.form.resetValidation();
     },
   },
   mounted() {
-    // this.sentitiveChart = new Chart({
-    //   container: "sentitive-chart",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.topicChart1 = new Chart({
-    //   container: "topic-chart1",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.topicChart2 = new Chart({
-    //   container: "topic-chart2",
-    //   autoFit: true,
-    //   height: 500,
-    // });
-    // this.keywordChart = new Chart({
-    //   container: "keyword-chart", // 指定图表容器 ID
-    //   autoFit: true,
-    //   height: 500, // 指定图表高度
-    // });
-    // this.getHotPostList();
-    // this.getSentitiveAnalysis();
-    // this.getTopicAnalysis();
-    // this.getKeywordAnalysis();
-    // this.getNegativeAnalysis();
+    this.getStudentList();
+    this.countCollator();
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.active {
+  background-color: rgb(189, 109, 189);
+  color: white !important;
+}
+</style>

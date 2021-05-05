@@ -41,7 +41,7 @@ export default {
   data: () => ({
     dialog: false,
     items: [
-      { icon: "mdi-home", title: "首页", path: "/admin/home" },
+      { icon: "mdi-home", title: "核对结果", path: "/admin/collate" },
       { icon: "mdi-contacts", title: "用户管理", path: "/admin/user" },
     ],
   }),

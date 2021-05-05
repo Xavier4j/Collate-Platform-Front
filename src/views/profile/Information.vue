@@ -16,6 +16,7 @@
             label="姓名"
             placeholder="（设置后无法改动）"
             required
+            :readonly="profile.name"
           ></v-text-field>
         </v-col>
       </v-row>
@@ -28,8 +29,6 @@
       ></v-textarea>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="error" class="mr-2" @click="reset()">重 置</v-btn>
-
         <v-btn color="warning" @click="save()">保 存</v-btn>
       </v-card-actions>
     </v-card>
