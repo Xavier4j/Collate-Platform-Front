@@ -16,7 +16,7 @@
             label="姓名"
             placeholder="（设置后无法改动）"
             required
-            :readonly="profile.name"
+            :readonly="profile.name != null"
           ></v-text-field>
         </v-col>
       </v-row>
